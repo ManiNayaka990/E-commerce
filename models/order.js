@@ -24,7 +24,7 @@ const orderSchema = new mongoose.Schema({
         default: Date.now(),
     },
     delivery: {
-        type: mongoose.Types.Schema.ObjectId,
+        type: mongoose.Schema.Types.ObjectId,
         ref: "Delivery",
     },
     orderStatus: Boolean,
