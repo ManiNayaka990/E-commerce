@@ -9,13 +9,13 @@ require("dotenv").config()
 app.use("/uploads", express.static("uploads"))
 
 const seller = require("./routes/seller")
-app.use("/seller", seller)
+app.use("/api/seller", seller)
 
 const customer = require("./routes/customer")
-app.use("/customer", customer)
+app.use("/api/customer", customer)
 
 const controller = require("./routes/controller")
-app.use("/controller", controller)
+app.use("/api/controller", controller)
 
 mongoose
     .connect(process.env.MONGOOSE_CONNECTION_KEY)
