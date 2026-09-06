@@ -6,7 +6,7 @@ function Seller(){
   return (
     <>
       <Routes>
-        <Route path='/' element={<Login />}></Route>
+        <Route path= '/' element={<Login />}></Route>
         <Route path='/home' element={<Home />} />
         <Route path='/register' element={ <Register />} />
       </Routes>

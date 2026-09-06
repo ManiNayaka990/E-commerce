@@ -6,4 +6,4 @@ const Home = () => {
   )
 }
 
-export default Home0
+export default Home
