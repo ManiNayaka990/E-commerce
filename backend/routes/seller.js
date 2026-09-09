@@ -25,7 +25,7 @@ const {
 
 const upload = require("../config/seller")
 
-router.get("/", authmiddleware, sellerProducts)
+router.get("/", authmiddleware, sellerExist, sellerProducts)
 router.post("/register", sellerRegValidation, sellerRegister)
 
 router.post("/login", sellerLogValidation, sellerLogin)

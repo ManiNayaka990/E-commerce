@@ -16,7 +16,7 @@ const Register = () => {
         "Content-Type": "Application/json"
       },
       body: JSON.stringify(seller)
-    })
+    }) 
     const data = await response.json()
     if(data.success == true)
       navigate("/seller/")
@@ -26,6 +26,7 @@ const Register = () => {
   return (
     <>
       <div>
+        <h1>Seller Register</h1>
         <p>{message}</p>
         <input type='text' placeholder='Enter username' value={seller.username} onChange={(e) =>{
           setSeller({

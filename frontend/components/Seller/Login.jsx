@@ -15,6 +15,7 @@ const Login = () => {
       headers: {
         "Content-Type": "Application/json"
       },
+      credentials: "include",
       body: JSON.stringify(seller)
     })
     const data = await response.json()
@@ -26,6 +27,9 @@ const Login = () => {
   return (
     <>
       <div>
+        <h1>
+          Seller Login
+        </h1>
         <p>{message}</p>
         <input type='text' placeholder='Enter your username' value={seller.username} onChange={(e) =>{
           setSeller({
