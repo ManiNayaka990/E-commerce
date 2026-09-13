@@ -11,15 +11,15 @@ const Login = () => {
   const [message, setMessage] = useState("")
   async function validateSeller(){
     const response = await fetch("http://localhost:5000/api/seller/login", {
-      method: "Post",
-      headers: {
-        "Content-Type": "Application/json"
-      },
+      method: "POST",
       credentials: "include",
+      headers: {
+      "Content-Type": "application/json"
+      },
       body: JSON.stringify(seller)
     })
     const data = await response.json()
-    if(data.success == true)
+    if(data.success === true)
       navigate("/seller/home")
     else
       setMessage(data.message)
@@ -31,13 +31,13 @@ const Login = () => {
           Seller Login
         </h1>
         <p>{message}</p>
-        <input type='text' placeholder='Enter your username' value={seller.username} onChange={(e) =>{
+        <input type='text' name='username' placeholder='Enter your username' value={seller.username} onChange={(e) =>{
           setSeller({
             ...seller,
             username: e.target.value
           })}
         }></input>
-        <input type='password' placeholder='Enter your password' value = {seller.password} onChange={(e) => {
+        <input type='password' name = 'password' placeholder='Enter your password' value = {seller.password} onChange={(e) => {
           setSeller({
             ...seller,
             password: e.target.value

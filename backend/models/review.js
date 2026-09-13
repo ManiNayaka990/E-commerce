@@ -11,10 +11,6 @@ const reviewScheama = new mongoose.Schema({
         ref: "user",
     },
     rating: Number,
-    comment: [
-        {
-            type: String,
-        },
-    ],
+    comment: String
 })
 module.exports = mongoose.model("Review", reviewScheama)

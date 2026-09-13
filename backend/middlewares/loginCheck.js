@@ -4,7 +4,6 @@ const jwt = require("jsonwebtoken")
 const authmiddleware = (req, res, next) => {
     try {
         const token = req.cookies.token
-
         if (!token) {
             return res.status(401).json({
                 success: false,
@@ -21,6 +20,7 @@ const authmiddleware = (req, res, next) => {
 
         next()
     } catch (error) {
+
         return res.status(401).json({
             success: false,
             message: error.message,

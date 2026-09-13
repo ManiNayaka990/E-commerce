@@ -1,7 +1,7 @@
 const Seller = require("../models/seller")
 const bcrypt = require("bcrypt")
 const Category = require("../models/category")
-
+const Product = require("../models/product")
 const sellerExist = async (req, res, next) => {
     try {
         const seller = await Seller.findById(req.user.id)
@@ -73,34 +73,100 @@ const sellerLogValidation = async (req, res, next) => {
 }
 
 const productValidation = async (req, res, next) => {
-    const { price, stocks, categoryName, categoryType } = req.body
+    const {
+        price,
+        stocks,
+        categoryName,
+        categoryType
+    } = req.body
+
     try {
-        if (!req.files || req.files.length === 0) {
-            return res.status(400).json({
+        const product = await Product.findById(req.params.id)
+
+        if (!product) {
+            return res.status(404).json({
                 success: false,
-                message: "Require photos",
+                message: "Invalid Product Id",
             })
         }
-        if (Number(price) < 10) {
+
+        if (price !== undefined && Number(price) < 10) {
             return res.status(400).json({
                 success: false,
-                message: "Product price must greater than or equal to 10rup",
+                message: "Product price must be greater than or equal to 10 rupees",
             })
         }
-        if (Number(stocks) < 1) {
+
+        if (stocks !== undefined && Number(stocks) < 1) {
             return res.status(400).json({
                 success: false,
-                message: "stocks must be atleast 1",
+                message: "Stocks must be at least 1",
             })
         }
-        let category = await Category.findOne({ categoryType })
+
+        let category = await Category.findOne({
+            categoryType,
+            categoryName,
+        })
+
         if (!category) {
             category = new Category({
-                categoryType: categoryType,
-                categoryName: categoryName,
+                categoryType,
+                categoryName,
             })
+
             await category.save()
         }
+
+        req.category = category
+        req.product = product
+
+        next()
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: error.message,
+        })
+    }
+}
+const productValidationforAdding = async (req, res, next) => {
+    const {
+        price,
+        stocks,
+        categoryName,
+        categoryType
+    } = req.body
+
+    try {
+
+        if (price !== undefined && Number(price) < 10) {
+            return res.status(400).json({
+                success: false,
+                message: "Product price must be greater than or equal to 10 rupees",
+            })
+        }
+
+        if (stocks !== undefined && Number(stocks) < 1) {
+            return res.status(400).json({
+                success: false,
+                message: "Stocks must be at least 1",
+            })
+        }
+
+        let category = await Category.findOne({
+            categoryType,
+            categoryName,
+        })
+
+        if (!category) {
+            category = new Category({
+                categoryType,
+                categoryName,
+            })
+
+            await category.save()
+        }
+
         req.category = category
 
         next()
@@ -111,9 +177,11 @@ const productValidation = async (req, res, next) => {
         })
     }
 }
+
 module.exports = {
     sellerRegValidation,
     sellerLogValidation,
     productValidation,
+    productValidationforAdding,
     sellerExist,
 }

@@ -5,6 +5,7 @@ const {
     sellerRegValidation,
     sellerLogValidation,
     productValidation,
+    productValidationforAdding,
     sellerExist,
 } = require("../middlewares/seller")
 
@@ -52,7 +53,7 @@ router.post(
     authmiddleware,
     sellerExist,
     upload.array("product-photos", 10),
-    productValidation,
+    productValidationforAdding,
     addProducts
 )
 
@@ -78,7 +79,7 @@ router.put(
 router.get("/productData/:id", authmiddleware, sellerExist, productData)
 
 router.put(
-    "/updateProduct",
+    "/updateProduct/:id",
     authmiddleware,
     sellerExist,
     upload.array("product-photos", 10),
@@ -88,7 +89,7 @@ router.put(
 
 router.post("/logout", authmiddleware, sellerExist, logOut)
 
-router.delete("/delete-product", authmiddleware, sellerExist, deleteProduct)
+router.delete("/delete-product/:id", authmiddleware, sellerExist, deleteProduct)
 
 router.delete("/delete-seller", authmiddleware, sellerExist, deleteSeller)
 module.exports = router

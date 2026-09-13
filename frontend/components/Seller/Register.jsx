@@ -5,7 +5,8 @@ import { Link, useNavigate} from "react-router-dom"
 const Register = () => {
   const [seller, setSeller] = useState({
     username: "",
-    password: ""
+    password: "", 
+    email: ""
   })
   const navigate = useNavigate()
   const [message, setMessage] = useState("")
@@ -28,6 +29,12 @@ const Register = () => {
       <div>
         <h1>Seller Register</h1>
         <p>{message}</p>
+        <input type='email' placeholder='Enter Email' value={seller.email} onChange={(e) => {
+          setSeller({
+            ...seller,
+            email: e.target.value
+          })
+        }}/>
         <input type='text' placeholder='Enter username' value={seller.username} onChange={(e) =>{
           setSeller({
             ...seller,

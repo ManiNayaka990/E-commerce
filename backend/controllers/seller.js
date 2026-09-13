@@ -3,6 +3,7 @@ const Location = require("../models/location")
 const Product = require("../models/product")
 const bcrypt = require("bcrypt")
 const jwt = require("jsonwebtoken")
+const Category = require("../models/category")
 const deleteFile = require("../utils/deleteFile")
 
 // Register a new seller account.
@@ -88,46 +89,71 @@ const updateSellerProfile = async (req, res) => {
             })
         }
 
-        // Both profile photo and QR code are required when updating the profile.
-        if (!req.files["profile-photo"] || !req.files["qrcode-photo"]) {
-            return res.status(400).json({
-                success: false,
-                message: "Profile photo and QR code are required",
-            })
+        // -----------------------------
+        // 1. Update text/profile fields
+        // -----------------------------
+
+        if (firstName !== undefined) {
+            seller.firstName = firstName
         }
 
-        // Delete the seller's previous images before replacing them.
-        if (seller.profilePhoto) {
-            deleteFile(seller.profilePhoto)
+        if (lastName !== undefined) {
+            seller.lastName = lastName
         }
 
-        if (seller.qrCodeImg) {
-            deleteFile(seller.qrCodeImg)
+        if (age !== undefined) {
+            seller.age = age
         }
 
-        if (firstName !== undefined) seller.firstName = firstName
-        if (lastName !== undefined) seller.lastName = lastName
-        if (age !== undefined) seller.age = age
-        if (mobileNumber !== undefined) seller.mobileNumber = mobileNumber
+        if (mobileNumber !== undefined) {
+            seller.mobileNumber = mobileNumber
+        }
 
-        seller.qrCodeImg =
-            `/upload/qrcode/${req.files["qrcode-photo"][0].filename}`
+        // -----------------------------
+        // 2. Update profile photo
+        // -----------------------------
 
-        seller.profilePhoto =
-            `/upload/sellerProfile/${req.files["profile-photo"][0].filename}`
+        if (req.files && req.files["profile-photo"]) {
 
-        // Reuse an existing location when the same address already exists.
-        let location = await Location.findOne({
-            state,
-            pincode,
-            city,
-            street,
-            village,
-            district,
-        })
+            // Delete old profile photo
+            if (seller.profilePhoto) {
+                deleteFile(seller.profilePhoto)
+            }
 
-        if (!location) {
-            location = new Location({
+            seller.profilePhoto =
+                `/upload/sellerProfile/${req.files["profile-photo"][0].filename}`
+        }
+
+        // -----------------------------
+        // 3. Update QR code
+        // -----------------------------
+
+        if (req.files && req.files["qrcode-photo"]) {
+
+            // Delete old QR code
+            if (seller.qrCodeImg) {
+                deleteFile(seller.qrCodeImg)
+            }
+
+            seller.qrCodeImg =
+                `/upload/qrcode/${req.files["qrcode-photo"][0].filename}`
+        }
+
+        // -----------------------------
+        // 4. Update location
+        // -----------------------------
+
+        // Only update location if location data was sent
+        if (
+            state !== undefined ||
+            pincode !== undefined ||
+            city !== undefined ||
+            street !== undefined ||
+            village !== undefined ||
+            district !== undefined
+        ) {
+
+            let location = await Location.findOne({
                 state,
                 pincode,
                 city,
@@ -136,19 +162,40 @@ const updateSellerProfile = async (req, res) => {
                 district,
             })
 
-            await location.save()
+            // Create location if it doesn't already exist
+            if (!location) {
+                location = new Location({
+                    state,
+                    pincode,
+                    city,
+                    street,
+                    village,
+                    district,
+                })
+
+                await location.save()
+            }
+
+            seller.location = location._id
         }
 
-        seller.location = location._id
+        // -----------------------------
+        // 5. Save seller
+        // -----------------------------
 
         await seller.save()
+
+        // Populate location before sending response
+        await seller.populate("location")
 
         return res.status(200).json({
             success: true,
             message: "Profile information updated successfully",
             data: seller,
         })
+
     } catch (error) {
+
         return res.status(500).json({
             success: false,
             message: error.message,
@@ -209,7 +256,7 @@ const editProfileData = async (req, res) => {
     const sellerId = req.user.id
 
     try {
-        const seller = await Seller.findById(sellerId)
+        const seller = await Seller.findById(sellerId).populate("location")
 
         if (!seller) {
             return res.status(404).json({
@@ -237,7 +284,11 @@ const productData = async (req, res) => {
         const product = await Product.findOne({
             _id: req.params.id,
             seller: req.user.id,
-        }).populate("category")
+        }).populate("category").populate({path: "reviews",
+            populate: {
+                path: "customerId"
+            }
+        })
 
         if (!product) {
             return res.status(404).json({
@@ -263,11 +314,18 @@ const productData = async (req, res) => {
 
 // Update an existing product.
 const updateProduct = async (req, res) => {
-    const { pName, price, description, stocks } = req.body
+    const {
+        pName,
+        price,
+        description,
+        stocks
+    } = req.body
 
     try {
         const product = req.product
-        const seller = await Seller.findById(req.user.id).populate("location")
+
+        const seller = await Seller.findById(req.user.id)
+            .populate("location")
 
         if (!seller) {
             return res.status(404).json({
@@ -276,7 +334,14 @@ const updateProduct = async (req, res) => {
             })
         }
 
-        // Replace product images only when new images are uploaded.
+        if (!seller.location) {
+            return res.status(400).json({
+                success: false,
+                message: "Seller location not found",
+            })
+        }
+
+        // Replace existing photos only when new photos are uploaded
         if (req.files && req.files.length > 0) {
             if (product.photos && product.photos.length > 0) {
                 product.photos.forEach((photo) => {
@@ -289,13 +354,32 @@ const updateProduct = async (req, res) => {
             })
         }
 
-        product.pName = pName
-        product.price = price
-        product.description = description
-        product.stocks = stocks
-        product.category = req.category._id
-        product.district = seller.location?.district
+        // Update product fields
+        if (pName !== undefined) {
+            product.pName = pName
+        }
 
+        if (price !== undefined) {
+            product.price = price
+        }
+
+        if (description !== undefined) {
+            product.description = description
+        }
+
+        if (stocks !== undefined) {
+            product.stocks = stocks
+        }
+        const category = await Category.findById(req.category._id)
+        if(!category){
+            return res.status(400).json({
+                success: false,
+                message: "Invalid category"
+            })
+        }
+        // Update category and district
+        product.category = category._id
+        product.district = seller.location.district
         await product.save()
 
         return res.status(200).json({
@@ -408,8 +492,11 @@ const sellerProducts = async (req, res) => {
     try {
         const products = await Product.find({
             seller: req.user.id,
-        }).populate("category")
-
+        }).populate("category").populate({path: "reviews",
+            populate: {
+                path: "customerId"
+            }
+        })
         if (products.length === 0) {
             return res.status(200).json({
                 success: false,
