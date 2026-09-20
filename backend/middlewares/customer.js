@@ -1,4 +1,3 @@
-
 const Product = require("../models/product")
 const User = require("../models/user")
 const bcrypt = require("bcrypt")
@@ -18,7 +17,6 @@ const regValidation = async (req, res, next) => {
                 message: "User already exists with email or username"
             })
         }
-
         next()
     }
     catch (error) {
@@ -33,7 +31,6 @@ const regValidation = async (req, res, next) => {
 // Verifies the customer's username and password during login
 const loginValidation = async (req, res, next) => {
     const { username, password } = req.body
-
     try {
         const user = await User.findOne({ username })
 
@@ -43,7 +40,6 @@ const loginValidation = async (req, res, next) => {
                 message: "Invalid username or password"
             })
         }
-
         const passwordMatch = await bcrypt.compare(password, user.password)
 
         if (!passwordMatch) {
@@ -52,7 +48,6 @@ const loginValidation = async (req, res, next) => {
                 message: "Invalid username or password"
             })
         }
-
         // Store the authenticated customer so the next middleware/controller can use it
         req.customer = user
 
@@ -185,9 +180,26 @@ const orderValidation = async (req, res, next) => {
     }
 }
 
+const customerExist = async (req, res, next) =>{
+    try{const customer = await User.findById(req.user.id)
+    if(!customer){
+        return res.status(404).json({
+            success: false,
+            message: "Customer not found"
+        })
+    }
+    next()}
+    catch(error){
+        return res.status(500).json({
+            success: false,
+            message: error.message
+        })
+    }
+}
 module.exports = {
     regValidation,
     loginValidation,
-    orderValidation
+    orderValidation,
+    customerExist
 }
 

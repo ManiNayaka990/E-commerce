@@ -2,7 +2,7 @@ import React, {useContext} from 'react'
 import { Link } from 'react-router-dom'
 import { SellerContext } from '../../context/seller/sellerContext'
 import { useState } from 'react'
-import ProductCards from './ProductCards'
+import ProductCards from '../global/ProductCards'
 const Home = () => {
   const {productData} = useContext(SellerContext)
   return (

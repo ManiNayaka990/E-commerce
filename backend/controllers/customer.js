@@ -6,6 +6,8 @@ const Order = require("../models/order")
 const Product = require("../models/product")
 const Review = require("../models/review")
 const Delivery = require("../models/delivery")
+const Category = require("../models/category")
+
 
 // Register a new customer.
 const customerRegister = async (req, res) => {
@@ -14,7 +16,6 @@ const customerRegister = async (req, res) => {
     try {
         // Hash the password before storing it in the database.
         const hashPassword = await bcrypt.hash(password, 10)
-
         const user = new User({
             username: username,
             password: hashPassword,
@@ -22,7 +23,6 @@ const customerRegister = async (req, res) => {
         })
 
         await user.save()
-
         return res.status(201).json({
             success: true,
             message: "User registered successfully",
@@ -34,25 +34,30 @@ const customerRegister = async (req, res) => {
         })
     }
 }
-
+const loginCheck = (req, res) =>{
+    return res.status(200).json({
+        success: true,
+        message: 'User login true'
+    })
+}
 // Authenticate the customer and create a JWT.
 const customerLogin = async (req, res) => {
     try {
         const customer = req.customer
-
         const token = jwt.sign(
             { id: customer._id },
             process.env.JWT_SECRETE_KEY,
-            { expiresIn: "1d" }
+            { expiresIn: "1d" },
+            
         )
 
         // Store the JWT in an HTTP-only cookie.
         res.cookie("token", token, {
             httpOnly: true,
             secure: false,
+            sameSite: "lax",
             maxAge: 24 * 60 * 60 * 1000,
         })
-
         return res.status(200).json({
             success: true,
             message: "Login successful",
@@ -65,9 +70,83 @@ const customerLogin = async (req, res) => {
     }
 }
 
+const productdata = async (req, res) => {
+    try {
+
+        const products = await Product.aggregate([
+            {
+                $sample: {
+                    size: 100
+                }
+            },
+            {
+                $lookup: {
+                    from: "categories",
+                    localField: "category",
+                    foreignField: "_id",
+                    as: "category"
+                }
+            },
+            {
+                $unwind: "$category"
+            },
+            {
+                $lookup: {
+                    from: "reviews",
+                    localField: "reviews",
+                    foreignField: "_id",
+                    as: "review"
+                }
+            }
+        ])
+
+        return res.status(200).json({
+            success: true,
+            message: "Product details",
+            data: products
+        })
+
+    } catch (error) {
+
+        return res.status(500).json({
+            success: false,
+            message: error.message
+        })
+    }
+}
+
+const singleProduct = async (req, res) =>{
+    try{
+        const product = await Product.findById(req.params.id).populate("category").populate({path: "reviews",
+            populate: {
+                path: "customerId"
+            }
+        })
+        if(!product){
+            return res.status(404).json({
+                success: false,
+                message: "Invalid Product Id"
+            })
+        }
+        return res.status(200).json({
+            success: true,
+            message: "Product Details",
+            data: product
+        })
+    }
+    catch(error){
+        return res.status(500).json({
+            success: false,
+            message: error.message
+        })
+    }
+}
 // Add or update the customer's profile and location.
 const editProfile = async (req, res) => {
+    console.log('body', req.body)
+    console.log("firstname", req.body.firstName)
     try {
+        
         let {
             firstName,
             lastName,
@@ -167,7 +246,7 @@ const editProfile = async (req, res) => {
 // Return the logged-in customer's profile.
 const profileData = async (req, res) => {
     try {
-        const customer = await User.findById(req.user.id)
+        const customer = await User.findById(req.user.id).populate("location")
 
         if (customer) {
             return res.status(200).json({
@@ -489,34 +568,44 @@ const orderProduct = async (req, res) => {
             })
         }
 
+        // Create delivery date (5 days from now)
+        const deliveryDate = new Date()
+        deliveryDate.setDate(deliveryDate.getDate() + 5)
+
+        // Create the order
         const order = new Order({
             customerId: customer._id,
+
             products: [
                 {
                     product: req.product._id,
                     quantity: req.stocks,
                 },
             ],
+
             orderStatus: true,
             orderTime: Date.now(),
 
-            // The controller uses the product's district to route the order.
+            // The controller uses the product's district
+            // to route the order.
             district: req.product.district,
         })
 
-        // Reduce the available stock after the order is created.
-        req.product.stocks -= req.stocks
-        await req.product.save()
-
-        const deliveryDate = new Date()
-        deliveryDate.setDate(deliveryDate.getDate() + 5)
-
+        // Create delivery
         const delivery = new Delivery({
             orderId: order._id,
             deliveryTime: deliveryDate,
             paymentMethod: paymentMethod,
         })
 
+        // Connect Delivery with Order
+        order.delivery = delivery._id
+
+        // Reduce available stock
+        req.product.stocks -= req.stocks
+        await req.product.save()
+
+        // Save both documents
         await order.save()
         await delivery.save()
 
@@ -526,10 +615,31 @@ const orderProduct = async (req, res) => {
             orderData: order,
             deliveryData: delivery,
         })
+
     } catch (error) {
         return res.status(500).json({
             success: false,
             message: error.message,
+        })
+    }
+}
+
+const orderDetails = async (req, res) => {
+    try{
+        const orders = await Order.find({customerId: req.user.id,
+            orderStatus: true
+        }).populate("delivery").populate("products.product")
+        
+        return res.status(200).json({
+            success: true,
+            data: orders,
+            message: "User order details"
+        })
+    }
+    catch(error){
+        return res.status(500).json({
+            success: false,
+            message: error.message
         })
     }
 }
@@ -663,6 +773,7 @@ const cancelOrder = async (req, res) => {
         return res.status(200).json({
             success: true,
             data: order,
+            message: "Order Canceled successfully"
         })
     } catch (error) {
         return res.status(500).json({
@@ -764,6 +875,71 @@ const deleteAccount = async (req, res) => {
     }
 }
 
+const searchProducts = async (req, res) => {
+    try {
+        const { category, search } = req.params
+
+        const matchCondition = {
+            $or: [
+                {
+                    pName: {
+                        $regex: search,
+                        $options: "i"
+                    }
+                },
+                {
+                    description: {
+                        $regex: search,
+                        $options: "i"
+                    }
+                }
+            ]
+        }
+
+        // Apply category filter only when category is not "all"
+        if (category !== "all") {
+            matchCondition["category.categoryName"] = category
+        }
+
+        const products = await Product.aggregate([
+            {
+                $lookup: {
+                    from: "categories",
+                    localField: "category",
+                    foreignField: "_id",
+                    as: "category"
+                }
+            },
+            {
+                $unwind: "$category"
+            },
+            {
+                $match: matchCondition
+            },
+            {
+                $lookup: {
+                    from: "reviews",
+                    localField: "reviews",
+                    foreignField: "_id",
+                    as: "reviews"
+                }
+            }
+        ])
+
+        return res.status(200).json({
+            success: true,
+            data: products,
+            message: "Products List"
+        })
+
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: error.message
+        })
+    }
+}
+
 module.exports = {
     customerRegister,
     customerLogin,
@@ -781,4 +957,9 @@ module.exports = {
     cancelOrder,
     deleteReview,
     deleteAccount,
+    productdata,
+    singleProduct,
+    loginCheck,
+    orderDetails,
+    searchProducts
 }

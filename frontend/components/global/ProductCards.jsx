@@ -14,7 +14,7 @@ const ProductCards = () => {
             >
               <img
                 src={`http://localhost:5000${item?.photos?.[0]}`}
-                alt={item?.pName}
+                alt={item?.pName} style={{width: "200px"}} 
               />
               <p>{item?.pName}</p>
               <p>Category Type {item?.category?.categoryType}</p>

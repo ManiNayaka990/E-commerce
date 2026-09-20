@@ -7,7 +7,7 @@ import Profile from '../components/Seller/Profile'
 
 import { SellerProvider } from '../context/seller/sellerContext'
 import EditProfile from '../components/Seller/EditProfile'
-import ProductCards from '../components/Seller/ProductCards'
+import ProductCards from '../components/global/ProductCards'
 import ProductDetails from '../components/Seller/ProductDetails'
 import EditProduct from '../components/Seller/EditProduct'
 import AddProduct from '../components/Seller/AddProduct'

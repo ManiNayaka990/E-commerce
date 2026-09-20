@@ -12,7 +12,8 @@ const Register = () => {
   const [message, setMessage] = useState("")
   async function validateSeller(){
     const response = await fetch("http://localhost:5000/api/seller/register", {
-      method: "Post",
+      method: "POST",
+      credentials: "include",
       headers: {
         "Content-Type": "Application/json"
       },

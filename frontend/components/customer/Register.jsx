@@ -2,55 +2,56 @@ import { useState } from 'react'
 import { Link, useNavigate} from "react-router-dom"
 
 
-const Login = () => {
+const Register = () => {
   const [user, setUser] = useState({
     username: "",
-    password: ""
+    password: "", 
+    email: ""
   })
   const navigate = useNavigate()
   const [message, setMessage] = useState("")
-
   async function validateUser(){
-    const response = await fetch("http://localhost:5000/api/customer/customerLogin", {
-      method: "POST",
+    const response = await fetch("http://localhost:5000/api/customer/customer-register", {
+      method: "Post",
       credentials: "include",
       headers: {
-      "Content-Type": "application/json"
+        "Content-Type": "Application/json"
       },
       body: JSON.stringify(user)
-    })
+    }) 
     const data = await response.json()
-    console.log(data.message)
-    if(data.success === true){
+    if(data.success == true)
       navigate("/")
-    }
     else
       setMessage(data.message)
   }  
   return (
     <>
       <div>
-        <h1>
-          Customer Login
-        </h1>
+        <h1>Seller Register</h1>
         <p>{message}</p>
-        <input type='text' name='username' placeholder='Enter your username' value={user.username} onChange={(e) =>{
+        <input type='email' placeholder='Enter Email' value={user.email} onChange={(e) => {
+          setUser({
+            ...user,
+            email: e.target.value
+          })
+        }}/>
+        <input type='text' placeholder='Enter username' value={user.username} onChange={(e) =>{
           setUser({
             ...user,
             username: e.target.value
           })}
         }></input>
-        <input type='password' name = 'password' placeholder='Enter your password' value = {user.password} onChange={(e) => {
+        <input type='password' placeholder='Enter password' value = {user.password} onChange={(e) => {
           setUser({
             ...user,
             password: e.target.value
           })
         }}></input>
         <button onClick={validateUser}>Submit</button>
-        <p>If you don't have account <Link to={"/register"}><span>Register</span></Link></p>
       </div>
     </>
   )
 }
 
-export default Login
+export default Register

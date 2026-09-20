@@ -31,10 +31,10 @@ const customer = new mongoose.Schema({
         ref: "Location",
     },
     mobileNumber: Number,
-    orderId: {
+    orderId:[ {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Order",
-    },
+    }],
     cart: [
         {
             type: mongoose.Schema.Types.ObjectId,
